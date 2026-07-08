@@ -18,9 +18,12 @@ with st.sidebar:
     auth_code = st.text_input('邮箱授权码', type='password')
     receiver_email = st.text_input('接收人邮箱', value='875736154@qq.com')
 
-uploaded_file = st.file_uploader('上传CSV数据文件', type='csv')
+uploaded_file = st.file_uploader('上传数据文件', type=['csv', 'xlsx'])
 if uploaded_file is not None:
-    df = pd.read_csv(uploaded_file)
+    if uploaded_file.name.endswith('.xlsx'):
+        df = pd.read_excel(uploaded_file, engine='openpyxl')
+    else:
+        df = pd.read_csv(uploaded_file)
     st.subheader('数据预览')
     st.dataframe(df.head(5))
     
@@ -29,7 +32,8 @@ if uploaded_file is not None:
     if st.button('开始分析', disabled=not user_query):
         with st.spinner('正在分析数据...'):
             try:
-                csv_path = os.path.join(os.path.dirname(__file__), uploaded_file.name)
+                base_name = os.path.splitext(uploaded_file.name)[0]
+                csv_path = os.path.join(os.path.dirname(__file__), base_name + '.csv')
                 df.to_csv(csv_path, index=False)
                 
                 answer = data_analyze_agent(csv_path, user_query, API_KEY)
@@ -63,4 +67,4 @@ if uploaded_file is not None:
             except Exception as e:
                 st.error(f'分析失败: {str(e)}')
 else:
-    st.info('请先上传CSV数据文件')
+    st.info('请先上传CSV或Excel数据文件')

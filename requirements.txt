@@ -5,3 +5,4 @@ langchain-openai>=1.0.0
 langchain-experimental>=0.4.0
 langchain-core>=1.0.0
 zmail>=0.2.8
+openpyxl>=3.0.0

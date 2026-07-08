@@ -1,0 +1,7 @@
+streamlit>=1.50.0
+pandas>=2.0.0
+matplotlib>=3.7.0
+langchain-openai>=1.0.0
+langchain-experimental>=0.4.0
+langchain-core>=1.0.0
+zmail>=0.2.8

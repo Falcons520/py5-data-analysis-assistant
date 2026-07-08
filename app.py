@@ -4,6 +4,9 @@ import io
 import pandas as pd
 from L15 import data_analyze_agent, generate_report, send_email
 
+# Streamlit Cloud secrets first, fallback to env var
+API_KEY = st.secrets.get("DEEPSEEK_API_KEY", "") or os.environ.get("DEEPSEEK_API_KEY", "")
+
 st.set_page_config(page_title='AI数据分析助手', layout='wide')
 
 st.title('AI数据分析助手')
@@ -29,7 +32,7 @@ if uploaded_file is not None:
                 csv_path = os.path.join(os.path.dirname(__file__), uploaded_file.name)
                 df.to_csv(csv_path, index=False)
                 
-                answer = data_analyze_agent(csv_path, user_query)
+                answer = data_analyze_agent(csv_path, user_query, API_KEY)
                 
                 st.success('数据分析完成！')
                 
@@ -44,7 +47,7 @@ if uploaded_file is not None:
                 analysis_log = [answer]
                 
                 with st.spinner('正在生成报告...'):
-                    report_data = generate_report(analysis_log)
+                    report_data = generate_report(analysis_log, API_KEY)
                 
                 st.subheader('数据分析报告')
                 st.markdown(report_data.get('content_html', ''), unsafe_allow_html=True)

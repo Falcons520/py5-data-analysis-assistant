@@ -163,10 +163,9 @@ PROMPT_TEMPLATE = '''
 - 所有列名必须存在于 df（若使用映射，请先在说明中给出映射关系）
 - 仅返回一个 JSON；不要附加解释性文字'''
 
-def data_analyze_agent(csv_path, user_query):
-    import os
+def data_analyze_agent(csv_path, user_query, api_key=""):
     model = ChatOpenAI(
-        api_key=os.environ.get("DEEPSEEK_API_KEY", ""),
+        api_key=api_key,
         model="deepseek-chat",
         base_url="https://api.deepseek.com",
         model_kwargs={'response_format': {'type': 'json_object'}}
@@ -290,11 +289,11 @@ REPORT_PROMPT = """
 """
 
 
-def generate_report(analysis_log):
+def generate_report(analysis_log, api_key=""):
     import os
     from langchain_core.prompts import ChatPromptTemplate
     llm = ChatOpenAI(
-        api_key=os.environ.get("DEEPSEEK_API_KEY", ""),
+        api_key=api_key,
         model="deepseek-chat",
         base_url="https://api.deepseek.com",
         model_kwargs={'response_format': {'type': 'json_object'}},

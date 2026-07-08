@@ -11,9 +11,18 @@ import matplotlib.pyplot as plt
 
 # 用来绘图的函数
 import matplotlib.pyplot as plt
+import platform
+
 def setup_plot():
     """全局绘图配置（字体、画布、样式）"""
-    plt.rcParams["font.sans-serif"] = ["Microsoft YaHei"]  # 中文字体
+    # 根据平台选择中文字体
+    system = platform.system()
+    if system == "Windows":
+        plt.rcParams["font.sans-serif"] = ["Microsoft YaHei"]
+    elif system == "Darwin":
+        plt.rcParams["font.sans-serif"] = ["Arial Unicode MS"]
+    else:
+        plt.rcParams["font.sans-serif"] = ["WenQuanYi Zen Hei"]
     plt.rcParams["axes.unicode_minus"] = False  # 正常显示负号
     plt.figure(figsize=(8, 5))  # 统一画布大小
     plt.grid(True, linestyle="--", alpha=0.5)  # 默认网格线

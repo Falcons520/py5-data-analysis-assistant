@@ -15,14 +15,20 @@ import platform
 
 def setup_plot():
     """全局绘图配置（字体、画布、样式）"""
+    import matplotlib.font_manager as fm
+
     # 根据平台选择中文字体
     system = platform.system()
     if system == "Windows":
-        plt.rcParams["font.sans-serif"] = ["Microsoft YaHei"]
+        font_name = "Microsoft YaHei"
     elif system == "Darwin":
-        plt.rcParams["font.sans-serif"] = ["Arial Unicode MS"]
+        font_name = "Arial Unicode MS"
     else:
-        plt.rcParams["font.sans-serif"] = ["WenQuanYi Zen Hei"]
+        font_name = "WenQuanYi Zen Hei"
+
+    # 强制重建字体缓存（确保新安装的字体被识别）
+    fm._load_fontmanager(try_read_cache=False)
+    plt.rcParams["font.sans-serif"] = [font_name]
     plt.rcParams["axes.unicode_minus"] = False  # 正常显示负号
     plt.figure(figsize=(8, 5))  # 统一画布大小
     plt.grid(True, linestyle="--", alpha=0.5)  # 默认网格线

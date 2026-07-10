@@ -5,7 +5,10 @@ import pandas as pd
 from L15 import data_analyze_agent, generate_report, send_email
 
 # Streamlit Cloud secrets first, fallback to env var
-API_KEY = st.secrets.get("DEEPSEEK_API_KEY", "") or os.environ.get("DEEPSEEK_API_KEY", "")
+try:
+    API_KEY = st.secrets.get("DEEPSEEK_API_KEY", "") or os.environ.get("DEEPSEEK_API_KEY", "")
+except Exception:
+    API_KEY = os.environ.get("DEEPSEEK_API_KEY", "")
 
 st.set_page_config(page_title='AI数据分析助手', layout='wide')
 
@@ -18,10 +21,19 @@ with st.sidebar:
     auth_code = st.text_input('邮箱授权码', type='password')
     receiver_email = st.text_input('接收人邮箱', value='875736154@qq.com')
 
-uploaded_file = st.file_uploader('上传数据文件', type=['csv', 'xlsx'])
+uploaded_file = st.file_uploader('上传数据文件', type=['csv', 'xlsx', 'xls', 'json', 'txt', 'tsv'])
 if uploaded_file is not None:
-    if uploaded_file.name.endswith('.xlsx'):
+    fname = uploaded_file.name.lower()
+    if fname.endswith('.xlsx'):
         df = pd.read_excel(uploaded_file, engine='openpyxl')
+    elif fname.endswith('.xls'):
+        df = pd.read_excel(uploaded_file, engine='xlrd')
+    elif fname.endswith('.json'):
+        df = pd.read_json(uploaded_file)
+    elif fname.endswith('.tsv'):
+        df = pd.read_csv(uploaded_file, sep='\t')
+    elif fname.endswith('.txt'):
+        df = pd.read_csv(uploaded_file, sep=None, engine='python')
     else:
         df = pd.read_csv(uploaded_file)
     st.subheader('数据预览')
@@ -67,4 +79,4 @@ if uploaded_file is not None:
             except Exception as e:
                 st.error(f'分析失败: {str(e)}')
 else:
-    st.info('请先上传CSV或Excel数据文件')
+    st.info('请先上传数据文件（支持CSV、Excel、JSON、TXT、TSV等格式）')

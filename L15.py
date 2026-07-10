@@ -17,21 +17,32 @@ def setup_plot():
     """全局绘图配置（字体、画布、样式）"""
     import matplotlib.font_manager as fm
 
-    # 根据平台选择中文字体
+    # 重建字体缓存，确保新安装的字体被识别
+    fm._load_fontmanager(try_read_cache=False)
+
+    # 按优先级排列的中文字体候选列表
     system = platform.system()
     if system == "Windows":
-        font_name = "Microsoft YaHei"
+        candidates = ["Microsoft YaHei", "SimHei", "KaiTi", "FangSong", "SimSun"]
     elif system == "Darwin":
-        font_name = "Arial Unicode MS"
+        candidates = ["Arial Unicode MS", "PingFang SC", "Heiti SC", "STHeiti"]
     else:
-        font_name = "WenQuanYi Zen Hei"
+        candidates = ["WenQuanYi Zen Hei", "WenQuanYi Micro Hei", "Noto Sans CJK SC",
+                      "Noto Sans SC", "Droid Sans Fallback", "DejaVu Sans"]
 
-    # 强制重建字体缓存（确保新安装的字体被识别）
-    fm._load_fontmanager(try_read_cache=False)
-    plt.rcParams["font.sans-serif"] = [font_name]
-    plt.rcParams["axes.unicode_minus"] = False  # 正常显示负号
-    plt.figure(figsize=(8, 5))  # 统一画布大小
-    plt.grid(True, linestyle="--", alpha=0.5)  # 默认网格线
+    # 从系统中找到第一个实际可用的中文字体
+    available = {f.name for f in fm.fontManager.ttflist}
+    font_name = "sans-serif"
+    for name in candidates:
+        if name in available:
+            font_name = name
+            break
+
+    plt.rcParams["font.sans-serif"] = [font_name] + candidates
+    plt.rcParams["font.family"] = "sans-serif"
+    plt.rcParams["axes.unicode_minus"] = False
+    plt.figure(figsize=(8, 5))
+    plt.grid(True, linestyle="--", alpha=0.5)
 
 
 def ensure_dir(path):

@@ -3,160 +3,88 @@
 [![CI](https://github.com/Falcons520/py5-data-analysis-assistant/actions/workflows/ci.yml/badge.svg)](https://github.com/Falcons520/py5-data-analysis-assistant/actions/workflows/ci.yml)
 [![Docker](https://github.com/Falcons520/py5-data-analysis-assistant/actions/workflows/docker.yml/badge.svg)](https://github.com/Falcons520/py5-data-analysis-assistant/actions/workflows/docker.yml)
 
-上传数据 → 自动清洗 → DeepSeek 智能分析 → 一键导出 **Markdown / Word / Excel / 文本摘要**。
+上传数据 → 自动清洗 → DeepSeek 智能分析 → 导出 Markdown / Word / Excel / 文本摘要。
 
-基于 **FastAPI + 原生前端** 的 Web 应用，可直接部署到任意容器平台（Render / Hugging Face Spaces / 自有服务器 / NAS 等），无需前端构建步骤。
+## 功能
 
----
-
-## 功能特性
-
-- **多格式数据接入**：CSV、TSV、TXT、JSON、Excel（`.xlsx` / `.xls` / `.xlsm`），单文件 ≤ 25MB
-- **自动数据清洗**：缺失值（均值 / 众数 / 删除）、重复行、异常值（IQR / Z-Score 截尾）、列名规范化、空白修剪，并输出 Markdown 清洗报告
-- **AI 分析**：基于 LangChain + DeepSeek 的 Pandas Agent，自动计算指标、生成柱状图 / 折线图 / 散点图并给出业务解读
-- **多格式报告导出**：Markdown、Word（含图表嵌入）、Excel（清洗数据 + 统计 + 清洗记录）、100 字核心摘要
-- **邮件推送**：通过 SMTP 授权码把报告（含图表附件）发送到指定邮箱
-- **任务化执行**：分析任务在后台线程运行，前端轮询进度，不会因请求超时而中断；24 小时后自动清理上传数据与产物
-
----
+- **数据接入**：CSV、TSV、TXT、JSON、Excel（`.xlsx` / `.xls` / `.xlsm`），单文件 ≤ 25MB
+- **自动清洗**：缺失值（均值 / 众数 / 删除）、重复行、异常值（IQR / Z-Score 截尾）、列名规范化，输出清洗报告
+- **AI 分析**：LangChain + DeepSeek 的 Pandas Agent，自动计算指标、生成柱状图 / 折线图 / 散点图并给出解读
+- **报告导出**：Markdown、Word（含图表）、Excel（清洗数据 + 统计 + 清洗记录）、100 字摘要
+- **邮件推送**：通过 SMTP 授权码发送报告与图表附件
+- **后台任务**：分析在线程中运行、前端轮询进度，数据与产物 24 小时后自动清理
 
 ## 技术栈
 
 | 层 | 选型 |
 | --- | --- |
 | Web 框架 | FastAPI + Uvicorn |
-| 前端 | 原生 HTML / CSS / JavaScript（无构建步骤） |
+| 前端 | 原生 HTML / CSS / JavaScript |
 | 数据分析 | pandas、numpy、matplotlib |
 | 大模型 | LangChain + DeepSeek（`deepseek-chat`） |
 | 文档导出 | python-docx、openpyxl |
-| 部署 | Docker、GitHub Actions、Render |
+| 部署 | Docker、GitHub Actions |
 
----
-
-## 本地运行
+## 快速开始
 
 ```bash
-# 1. 创建虚拟环境
 python -m venv .venv
-# Windows
-.venv\Scripts\activate
-# macOS / Linux
-source .venv/bin/activate
-
-# 2. 安装依赖
+source .venv/bin/activate          # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
-
-# 3. 配置密钥
-set DEEPSEEK_API_KEY=sk-xxxx        # Windows PowerShell: $env:DEEPSEEK_API_KEY="sk-xxxx"
-# 或复制 .env.example 为 .env，并自行加载
-
-# 4. 启动
+cp .env.example .env               # 填写 DEEPSEEK_API_KEY
 uvicorn server.main:app --reload --port 8000
 ```
 
-打开 <http://127.0.0.1:8000> 即可使用；接口文档在 <http://127.0.0.1:8000/api/docs>。
+打开 <http://127.0.0.1:8000>，接口文档在 <http://127.0.0.1:8000/api/docs>。
 
----
+## 部署
 
-## 通过 GitHub 上线
-
-仓库地址：<https://github.com/Falcons520/py5-data-analysis-assistant>
-
-仓库已包含部署所需文件：
-
-```
-Dockerfile                 生产镜像（含中文字体）
-render.yaml                Render 一键部署配置
-.github/workflows/ci.yml   测试 + 语法检查
-.github/workflows/docker.yml  构建并推送 GHCR 镜像
-```
-
-### 方式一：Render（推荐，免费额度即可）
-
-1. Fork 或克隆本仓库到你的 GitHub 账号。
-2. 登录 [Render](https://render.com) → **New → Blueprint** → 选择该仓库，Render 会自动读取 `render.yaml`。
-   也可以直接打开 <https://dashboard.render.com/blueprint/new?repo=https://github.com/Falcons520/py5-data-analysis-assistant>。
-3. 在环境变量里填写 `DEEPSEEK_API_KEY`（勾选 Secret），以及自定义的 `ACCESS_TOKEN`（访问口令，同样勾选 Secret）。
-4. 点击 **Apply**，等待构建完成，即可获得 `https://<service>.onrender.com` 地址。
-
-> 免费实例无持久磁盘，重启后上传数据会丢失（任务结果本来也只保留 24 小时）；如需保留，升级套餐并在 `render.yaml` 中挂载磁盘到 `/app/data`。
-
-### 方式二：Hugging Face Spaces（无需信用卡）
-
-同样是 Docker 容器，免费额度 2 vCPU / 16 GB，不需要任何支付信息。
-
-完整步骤见 [docs/huggingface-space.md](docs/huggingface-space.md)，大致是：新建 Docker Space → `git push` 代码 → 在 Space 的 README 顶部加 `sdk: docker` / `app_port: 8000` → 在 Settings 里加 `DEEPSEEK_API_KEY` 与 `ACCESS_TOKEN` 两个 secret。
-
-### 方式三：任意支持 Docker 的平台
+### Docker
 
 ```bash
 docker build -t ai-data-analysis-assistant .
 docker run -d -p 8000:8000 \
   -e DEEPSEEK_API_KEY=sk-xxxx \
+  -e ACCESS_TOKEN=your-token \
   -v $(pwd)/data:/app/data \
-  --name analysis-assistant \
   ai-data-analysis-assistant
 ```
 
-也可以用 GitHub Actions 构建的镜像：
+或直接 `docker compose up -d --build`（从 `.env` 读取配置）。
 
-```bash
-docker pull ghcr.io/falcons520/py5-data-analysis-assistant:latest
-docker run -d -p 8000:8000 -e DEEPSEEK_API_KEY=sk-xxxx ghcr.io/falcons520/py5-data-analysis-assistant:latest
-```
+### Render
 
-### 方式四：自有服务器 / NAS
+1. **New → Blueprint**，选择本仓库，自动读取 `render.yaml`
+2. 填写环境变量 `DEEPSEEK_API_KEY` 与 `ACCESS_TOKEN`
+3. **Apply**，构建完成后获得 `https://<service>.onrender.com`
 
-1. `git clone` 仓库并进入目录。
-2. `docker compose up -d --build`（或按上面的 `docker run` 手动启动）。
-3. 用 Nginx / Caddy 反向代理到 `8000` 端口，并配置 HTTPS。
+免费实例无持久磁盘，重启后 `data/` 会清空；需要保留请升级套餐并挂载磁盘。
 
----
+### Hugging Face Spaces
+
+见 [docs/huggingface-space.md](docs/huggingface-space.md)。
 
 ## 环境变量
 
 | 变量 | 默认值 | 说明 |
 | --- | --- | --- |
-| `DEEPSEEK_API_KEY` | 空 | **必填**，DeepSeek API Key |
+| `DEEPSEEK_API_KEY` | 空 | 必填，DeepSeek API Key |
 | `ACCESS_TOKEN` | 空 | 访问口令；设置后除健康检查外所有接口都需携带，留空则不设防 |
-| `DEEPSEEK_MODEL` | `deepseek-chat` | 模型名（仅用于展示/扩展） |
+| `DEEPSEEK_MODEL` | `deepseek-chat` | 模型名 |
 | `DATA_DIR` | `./data` | 上传文件、图表、报告目录 |
 | `MAX_UPLOAD_MB` | `25` | 单文件大小上限 |
 | `MAX_CONCURRENT_JOBS` | `2` | 同时运行的分析任务数 |
-| `JOB_RETENTION_HOURS` | `24` | 数据集与任务保留时长 |
+| `JOB_RETENTION_HOURS` | `24` | 数据集与任务保留时长，`0` 关闭清理 |
 | `ALLOWED_ORIGINS` | `*` | 允许跨域的来源，逗号分隔 |
 | `EMAIL_ENABLED` | `1` | 设为 `0` 关闭邮件功能 |
 
----
-
-## 访问口令与分享
-
-设置环境变量 `ACCESS_TOKEN` 后，应用进入“受限访问”模式：
-
-- 打开页面会先弹出输入框，口令正确才会进入主界面（保存在浏览器 localStorage，下次免输）。
-- 所有数据接口都会校验口令：请求头 `X-Access-Token`，或 URL 参数 `?token=...`（图表、下载链接会自动带上）。
-- 同一 IP 10 分钟内输错 20 次会被临时封禁，避免暴力猜解。
-- 健康检查 `/api/health` 与静态资源保持公开，Render 等平台探活不受影响。
-
-**分享给别人用**，三种方式任选：
-
-| 方式 | 对方需要做的 | 你的成本 |
-| --- | --- | --- |
-| 你部署一次，发地址 + 口令 | 打开链接、输入口令即可 | 消耗你的 API 额度 |
-| 对方 clone 后本地跑 | `uvicorn server.main:app --port 8000` | 无 |
-| 对方 fork 后自己部署 | 在 Render 一键部署，填自己的 Key | 无 |
-
-> 免费实例冷启动后第一个请求会等 30 秒左右才响应；上传的数据与分析结果请及时下载，24 小时后会被清理。
-
----
-
-## API 一览
+## API
 
 | 方法 | 路径 | 说明 |
 | --- | --- | --- |
 | GET | `/api/health` | 健康检查（含密钥是否配置） |
 | POST | `/api/datasets` | 上传并解析数据文件（multipart） |
-| POST | `/api/datasets/demo` | 载入仓库自带的示例数据 |
+| POST | `/api/datasets/demo` | 载入自带示例数据 |
 | GET | `/api/datasets/{id}` | 数据集信息 |
 | POST | `/api/datasets/{id}/clean` | 执行数据清洗 |
 | POST | `/api/jobs` | 创建分析任务 |
@@ -165,31 +93,16 @@ docker run -d -p 8000:8000 -e DEEPSEEK_API_KEY=sk-xxxx ghcr.io/falcons520/py5-da
 | GET | `/api/jobs/{id}/download/{kind}` | 下载 `markdown` / `word` / `excel` / `summary` |
 | POST | `/api/jobs/{id}/email` | 邮件推送报告 |
 
----
-
 ## 目录结构
 
 ```
-.
-├── server/
-│   ├── main.py          FastAPI 路由与静态资源挂载
-│   ├── pipeline.py      文件解析 → 清洗 → AI 分析 → 报告生成
-│   ├── store.py         数据集 / 任务的文件存储层
-│   ├── security.py      HTML 清洗、文件名安全处理
-│   └── config.py        环境变量配置
-├── static/
-│   ├── index.html       单页前端
-│   └── assets/          styles.css / app.js
-├── L15.py               Pandas Agent、绘图、报告与邮件发送
-├── data_cleaning.py     数据清洗流水线
-├── report_generator.py  Markdown / Word / Excel / 摘要生成
-├── tests/               pytest 接口测试（Mock 大模型）
-├── Dockerfile
-├── render.yaml
-└── .github/workflows/   CI 与镜像构建
+server/          FastAPI 路由、分析流水线、存储、安全清洗、配置
+static/          单页前端（index.html + assets）
+tests/           pytest 接口测试（Mock 大模型）
+L15.py           Pandas Agent、绘图、报告与邮件发送
+data_cleaning.py 数据清洗流水线
+report_generator.py  Markdown / Word / Excel / 摘要生成
 ```
-
----
 
 ## 测试
 
@@ -198,15 +111,9 @@ pip install -r requirements-dev.txt
 pytest -q
 ```
 
-测试会替换真实大模型调用，不需要 API Key 与网络。
+## 安全说明
 
----
-
-## 安全与限制
-
-- `DEEPSEEK_API_KEY` 只保存在服务端，前端与浏览器均不接触密钥。
-- 报告 HTML 经过服务端清洗（移除 `script` / `iframe` / 事件属性 / `javascript:` 链接），前端渲染前再用 `DOMParser` 二次清洗。
-- 邮箱授权码只在单次请求内转发给 SMTP 服务器，不写入磁盘、不写日志。
-- ⚠️ Pandas Agent 会执行模型生成的 Python 代码（`allow_dangerous_code=True`）。公开部署时务必设置 `ACCESS_TOKEN`，或限制在内网访问。
-- 分析任务运行在进程内线程中，服务重启会中断进行中的任务；多副本部署时请把任务队列替换为 Celery / RQ 等外部队列。
-
+- `DEEPSEEK_API_KEY` 只保存在服务端，前端不接触密钥。
+- 报告 HTML 在服务端清洗（移除 `script` / 事件属性 / `javascript:` 链接），前端渲染前再清洗一次。
+- Pandas Agent 会执行模型生成的 Python 代码（`allow_dangerous_code=True`），公开部署请设置 `ACCESS_TOKEN` 或限制在内网。
+- 分析任务运行在进程内线程，服务重启会中断进行中的任务；多副本部署需改用 Celery / RQ 等外部队列。

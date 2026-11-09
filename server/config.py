@@ -20,6 +20,9 @@ STATIC_DIR = BASE_DIR / "static"
 DEEPSEEK_API_KEY = os.environ.get("DEEPSEEK_API_KEY", "").strip()
 DEEPSEEK_MODEL = os.environ.get("DEEPSEEK_MODEL", "deepseek-chat").strip()
 
+# 访问口令：设置后除健康检查外所有接口都需要口令；留空则对所有人开放
+ACCESS_TOKEN = os.environ.get("ACCESS_TOKEN", "").strip()
+
 MAX_UPLOAD_MB = int(os.environ.get("MAX_UPLOAD_MB", "25"))
 MAX_CONCURRENT_JOBS = int(os.environ.get("MAX_CONCURRENT_JOBS", "2"))
 JOB_RETENTION_HOURS = int(os.environ.get("JOB_RETENTION_HOURS", "24"))

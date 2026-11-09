@@ -18,14 +18,53 @@
     summary: { icon: "TXT", title: "文本摘要", desc: "100 字核心结论", suffix: "_摘要.txt" },
   };
 
+  // ── 访问口令 ──────────────────────────────────────────────────────
+
+  const TOKEN_KEY = "analysis_access_token";
+  let accessToken = localStorage.getItem(TOKEN_KEY) || "";
+
+  function setToken(value) {
+    accessToken = (value || "").trim();
+    if (accessToken) {
+      localStorage.setItem(TOKEN_KEY, accessToken);
+    } else {
+      localStorage.removeItem(TOKEN_KEY);
+    }
+  }
+
+  function withToken(url) {
+    if (!accessToken || !url) return url;
+    const sep = url.includes("?") ? "&" : "?";
+    return `${url}${sep}token=${encodeURIComponent(accessToken)}`;
+  }
+
+  function showGate(message) {
+    const gate = $("gate");
+    show(gate);
+    if (message) setStatus("gateStatus", message, "err");
+    $("gateInput").value = "";
+    window.setTimeout(() => $("gateInput").focus(), 60);
+  }
+
   // ── 通用工具 ──────────────────────────────────────────────────────
 
   async function api(path, options) {
-    const response = await fetch(path, options || {});
+    const opts = Object.assign({}, options || {});
+    const headers = new Headers(opts.headers || {});
+    if (accessToken) headers.set("X-Access-Token", accessToken);
+    opts.headers = headers;
+
+    const response = await fetch(path, opts);
     const type = response.headers.get("content-type") || "";
     const payload = type.includes("application/json")
       ? await response.json().catch(() => null)
       : null;
+
+    if (response.status === 401) {
+      setToken("");
+      showGate("口令无效或已失效，请重新输入");
+      throw new Error("需要访问口令");
+    }
 
     if (!response.ok) {
       const detail = payload && (payload.detail || payload.message);
@@ -351,7 +390,7 @@
     urls.forEach((url, index) => {
       const figure = document.createElement("figure");
       const img = document.createElement("img");
-      img.src = url;
+      img.src = withToken(url);
       img.alt = `分析图表 ${index + 1}`;
       img.loading = "lazy";
       figure.appendChild(img);
@@ -369,7 +408,7 @@
       const meta = DOWNLOAD_META[kind];
       const link = document.createElement("a");
       link.className = "download-card";
-      link.href = downloads[kind];
+      link.href = withToken(downloads[kind]);
       link.setAttribute("download", "");
 
       const icon = document.createElement("span");
@@ -459,6 +498,62 @@
     }
   }
 
+  // ── 口令校验 ──────────────────────────────────────────────────────
+
+  async function bootstrapGate() {
+    let health = null;
+    try {
+      health = await api("/api/health");
+    } catch (err) {
+      health = null;
+    }
+
+    if (!health || !health.auth_required) {
+      hide($("gate"));
+      checkHealth();
+      return;
+    }
+
+    if (!accessToken) {
+      showGate();
+      checkHealth();
+      return;
+    }
+
+    try {
+      await api("/api/auth");
+      hide($("gate"));
+    } catch (err) {
+      setToken("");
+      showGate("口令无效或已失效，请重新输入");
+    }
+    checkHealth();
+  }
+
+  async function submitGate(event) {
+    event.preventDefault();
+    const value = $("gateInput").value.trim();
+    if (!value) return;
+
+    const button = $("gateBtn");
+    button.disabled = true;
+    setStatus("gateStatus", "校验中…");
+    setToken(value);
+
+    try {
+      await api("/api/auth");
+      hide($("gate"));
+      setStatus("gateStatus", "");
+      toast("验证通过");
+      checkHealth();
+    } catch (err) {
+      setToken("");
+      setStatus("gateStatus", "口令不正确，请重新输入", "err");
+    } finally {
+      button.disabled = false;
+    }
+  }
+
   // ── 事件绑定 ──────────────────────────────────────────────────────
 
   function bindEvents() {
@@ -497,6 +592,7 @@
     $("cleanBtn").addEventListener("click", runCleaning);
     $("analyzeBtn").addEventListener("click", startAnalysis);
     $("emailBtn").addEventListener("click", sendEmail);
+    $("gateForm").addEventListener("submit", submitGate);
 
     $("queryChips").addEventListener("click", (event) => {
       const button = event.target.closest("button[data-q]");
@@ -519,6 +615,6 @@
 
   document.addEventListener("DOMContentLoaded", () => {
     bindEvents();
-    checkHealth();
+    bootstrapGate();
   });
 })();

@@ -559,3 +559,33 @@ textarea { resize: vertical; min-height: 108px; line-height: 1.6; }
   .card-head { align-items: flex-start; }
   .file-chip { align-items: flex-start; }
 }
+
+/* ── 访问口令 ────────────────────────────────────────────────────── */
+.gate {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(16, 24, 40, .5);
+  backdrop-filter: blur(6px);
+}
+
+.gate-card {
+  width: min(400px, 100%);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 32px 28px 26px;
+  background: var(--surface);
+  border-radius: 20px;
+  box-shadow: 0 24px 64px rgba(16, 24, 40, .32);
+}
+
+.gate-card .badge { align-self: flex-start; }
+.gate-card h2 { margin: 0; font-size: 20px; letter-spacing: -.01em; }
+.gate-card .hint { margin: 0; line-height: 1.6; }
+.gate-card input { width: 100%; }
+.gate-card .btn { width: 100%; }

@@ -9,6 +9,16 @@
   <link rel="stylesheet" href="/assets/styles.css">
 </head>
 <body>
+  <div id="gate" class="gate hidden" role="dialog" aria-modal="true" aria-labelledby="gateTitle">
+    <form class="gate-card" id="gateForm" autocomplete="off">
+      <span class="badge badge-brand">受限访问</span>
+      <h2 id="gateTitle">请输入访问口令</h2>
+      <p class="hint">该应用由部署者设了口令，向分享链接给你的人索取后即可使用。</p>
+      <input id="gateInput" type="password" placeholder="访问口令" autocomplete="off" required>
+      <button id="gateBtn" class="btn btn-primary" type="submit">进入</button>
+      <span id="gateStatus" class="status-text" role="status"></span>
+    </form>
+  </div>
   <header class="hero">
     <div class="hero-inner">
       <span class="badge badge-brand">DeepSeek 驱动</span>

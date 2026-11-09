@@ -10,6 +10,8 @@ services:
     envVars:
       - key: DEEPSEEK_API_KEY
         sync: false
+      - key: ACCESS_TOKEN
+        sync: false
       - key: DEEPSEEK_MODEL
         value: deepseek-chat
       - key: MAX_CONCURRENT_JOBS

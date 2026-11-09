@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hmac
 import logging
 import re
 import time
@@ -9,7 +10,7 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from fastapi import FastAPI, File, HTTPException, UploadFile
+from fastapi import FastAPI, File, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
@@ -50,7 +51,7 @@ async def lifespan(_: FastAPI):
 app = FastAPI(
     title="AI 数据分析助手",
     description="上传数据 → 自动清洗 → DeepSeek 智能分析 → 多格式报告导出",
-    version="2.0.0",
+    version="2.1.0",
     docs_url="/api/docs",
     openapi_url="/api/openapi.json",
     lifespan=lifespan,
@@ -63,6 +64,65 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+# ── 访问口令（ACCESS_TOKEN）──────────────────────────────────────────────
+
+_PUBLIC_PATHS = {"/", "/api/health", "/favicon.ico", "/api/docs", "/api/openapi.json"}
+_PUBLIC_PREFIXES = ("/assets/",)
+_AUTH_FAILS: Dict[str, List[float]] = {}
+_AUTH_WINDOW = 600.0
+_AUTH_MAX_FAILS = 20
+
+
+def _client_ip(request: Request) -> str:
+    forwarded = request.headers.get("x-forwarded-for", "")
+    if forwarded:
+        return forwarded.split(",")[0].strip()
+    return request.client.host if request.client else "unknown"
+
+
+def _supplied_token(request: Request) -> str:
+    return (
+        request.headers.get("x-access-token")
+        or request.query_params.get("token")
+        or request.cookies.get("access_token")
+        or ""
+    ).strip()
+
+
+def _token_ok(token: str) -> bool:
+    if not config.ACCESS_TOKEN:
+        return True
+    return bool(token) and hmac.compare_digest(
+        token.encode("utf-8"), config.ACCESS_TOKEN.encode("utf-8")
+    )
+
+
+def _too_many_failures(ip: str) -> bool:
+    now = time.time()
+    recent = [item for item in _AUTH_FAILS.get(ip, []) if now - item < _AUTH_WINDOW]
+    _AUTH_FAILS[ip] = recent
+    return len(recent) >= _AUTH_MAX_FAILS
+
+
+@app.middleware("http")
+async def access_guard(request: Request, call_next):
+    if not config.ACCESS_TOKEN:
+        return await call_next(request)
+
+    path = request.url.path
+    if path in _PUBLIC_PATHS or path.startswith(_PUBLIC_PREFIXES):
+        return await call_next(request)
+
+    if _token_ok(_supplied_token(request)):
+        return await call_next(request)
+
+    ip = _client_ip(request)
+    _AUTH_FAILS.setdefault(ip, []).append(time.time())
+    if _too_many_failures(ip):
+        return JSONResponse({"detail": "口令尝试次数过多，请 10 分钟后再试"}, status_code=429)
+    return JSONResponse({"detail": "需要访问口令，请先在页面输入"}, status_code=401)
 
 
 @app.exception_handler(AnalysisError)
@@ -95,11 +155,18 @@ class EmailRequest(BaseModel):
 def health() -> Dict[str, Any]:
     return {
         "status": "ok",
-        "version": "2.0.0",
+        "version": "2.1.0",
         "model": config.DEEPSEEK_MODEL,
         "key_configured": bool(config.DEEPSEEK_API_KEY),
         "email_enabled": config.EMAIL_ENABLED,
+        "auth_required": bool(config.ACCESS_TOKEN),
     }
+
+
+@app.get("/api/auth")
+def auth_check() -> Dict[str, Any]:
+    """口令正确时才会走到这里（中间件已经拦截错误口令）。"""
+    return {"ok": True, "auth_required": bool(config.ACCESS_TOKEN)}
 
 
 @app.post("/api/datasets")

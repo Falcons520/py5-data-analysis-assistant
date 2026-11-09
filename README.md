@@ -60,7 +60,7 @@ uvicorn server.main:app --reload --port 8000
 
 ## 通过 GitHub 上线
 
-仓库地址：<https://github.com/Falcons520/py5-data-analysis-assistant>（已推送 v2.0.0，CI 与镜像构建均为绿色）
+仓库地址：<https://github.com/Falcons520/py5-data-analysis-assistant>（v2.1.0，CI 与镜像构建均为绿色）
 
 仓库已包含部署所需文件：
 
@@ -75,7 +75,8 @@ render.yaml                Render 一键部署配置
 
 1. 把代码推到 GitHub 仓库（如 `Falcons520/py5-data-analysis-assistant`）。
 2. 登录 [Render](https://render.com) → **New → Blueprint** → 选择该仓库，Render 会自动读取 `render.yaml`。
-3. 在环境变量里填写 `DEEPSEEK_API_KEY`（勾选 Secret）。
+   也可以直接打开 <https://dashboard.render.com/blueprint/new?repo=https://github.com/Falcons520/py5-data-analysis-assistant>。
+3. 在环境变量里填写 `DEEPSEEK_API_KEY`（勾选 Secret），以及自定义的 `ACCESS_TOKEN`（访问口令，同样勾选 Secret）。
 4. 点击 **Apply**，等待构建完成，即可获得 `https://<service>.onrender.com` 地址。
 
 > 免费实例无持久磁盘，重启后上传数据会丢失（任务结果本来也只保留 24 小时）；如需保留，升级套餐并在 `render.yaml` 中挂载磁盘到 `/app/data`。
@@ -111,6 +112,7 @@ docker run -d -p 8000:8000 -e DEEPSEEK_API_KEY=sk-xxxx ghcr.io/falcons520/py5-da
 | 变量 | 默认值 | 说明 |
 | --- | --- | --- |
 | `DEEPSEEK_API_KEY` | 空 | **必填**，DeepSeek API Key |
+| `ACCESS_TOKEN` | 空 | 访问口令；设置后除健康检查外所有接口都需携带，留空则不设防 |
 | `DEEPSEEK_MODEL` | `deepseek-chat` | 模型名（仅用于展示/扩展） |
 | `DATA_DIR` | `./data` | 上传文件、图表、报告目录 |
 | `MAX_UPLOAD_MB` | `25` | 单文件大小上限 |
@@ -118,6 +120,27 @@ docker run -d -p 8000:8000 -e DEEPSEEK_API_KEY=sk-xxxx ghcr.io/falcons520/py5-da
 | `JOB_RETENTION_HOURS` | `24` | 数据集与任务保留时长 |
 | `ALLOWED_ORIGINS` | `*` | 允许跨域的来源，逗号分隔 |
 | `EMAIL_ENABLED` | `1` | 设为 `0` 关闭邮件功能 |
+
+---
+
+## 访问口令与分享
+
+设置环境变量 `ACCESS_TOKEN` 后，应用进入“受限访问”模式：
+
+- 打开页面会先弹出输入框，口令正确才会进入主界面（保存在浏览器 localStorage，下次免输）。
+- 所有数据接口都会校验口令：请求头 `X-Access-Token`，或 URL 参数 `?token=...`（图表、下载链接会自动带上）。
+- 同一 IP 10 分钟内输错 20 次会被临时封禁，避免暴力猜解。
+- 健康检查 `/api/health` 与静态资源保持公开，Render 等平台探活不受影响。
+
+**分享给别人用**，三种方式任选：
+
+| 方式 | 对方需要做的 | 你的成本 |
+| --- | --- | --- |
+| 你部署一次，发地址 + 口令 | 打开链接、输入口令即可 | 消耗你的 API 额度 |
+| 对方 clone 后本地跑 | `uvicorn server.main:app --port 8000` | 无 |
+| 对方 fork 后自己部署 | 在 Render 一键部署，填自己的 Key | 无 |
+
+> 免费实例冷启动后第一个请求会等 30 秒左右才响应；上传的数据与分析结果请及时下载，24 小时后会被清理。
 
 ---
 

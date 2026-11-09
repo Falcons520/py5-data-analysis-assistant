@@ -1,5 +1,15 @@
 # 更新日志
 
+## 2026-11-09 — v2.1.0：访问口令与分享说明
+
+### 新增
+- **访问口令**：环境变量 `ACCESS_TOKEN` 控制；中间件统一校验请求头 `X-Access-Token`、URL 参数 `?token=` 或 cookie，健康检查与静态资源除外
+- **口令页**：前端新增受限访问遮罩，口令校验通过后写入 localStorage，图表与下载链接自动带 token
+- **防爆破**：同一 IP 10 分钟内错误 20 次返回 429
+- `/api/health` 新增 `auth_required` 字段，`/api/auth` 用于前端校验口令
+- README 新增「访问口令与分享」章节，`render.yaml` 与 `.env.example` 增加 `ACCESS_TOKEN`
+- 测试新增 `tests/test_auth.py`（6 个用例：公开页面、401、错误口令、请求头与 query 传参）
+
 ## 2026-11-09 — v2.0.0：移除 Streamlit，改为 FastAPI Web 应用
 
 ### 破坏性变更

@@ -1,5 +1,26 @@
+# Python
 __pycache__/
-*.pyc
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+
+# 环境变量与密钥
 .env
-artifacts/
+.env.*
+!.env.example
 .streamlit/
+
+# 运行期产物
+data/
+artifacts/
+*.log
+tests/.data/
+.pytmp/
+.tools/
+.uvcache/
+.acl-recovery/
+probe-*/
+pytest-cache-files-*/

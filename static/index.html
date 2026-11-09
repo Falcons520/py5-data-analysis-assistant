@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AI 数据分析助手</title>
+  <meta name="description" content="上传数据，自动清洗，DeepSeek 智能分析并一键导出 Markdown / Word / Excel 报告。">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%234f46e5'/%3E%3Cpath d='M18 42V26m10 16V18m10 24V30m8 12V22' stroke='white' stroke-width='5' stroke-linecap='round'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="/assets/styles.css">
+</head>
+<body>
+  <header class="hero">
+    <div class="hero-inner">
+      <span class="badge badge-brand">DeepSeek 驱动</span>
+      <h1>AI 数据分析助手</h1>
+      <p class="hero-sub">上传数据 → 自动清洗 → 智能分析 → 一键导出 Markdown / Word / Excel 报告</p>
+      <div class="hero-meta">
+        <span id="healthPill" class="pill">服务检查中…</span>
+        <span class="pill">数据 24 小时后自动清理</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <!-- 1. 上传 -->
+    <section class="card" id="cardUpload">
+      <div class="card-head">
+        <h2><span class="step">1</span>上传数据</h2>
+        <p class="hint">支持 CSV、Excel、JSON、TXT、TSV，单文件不超过 25MB</p>
+      </div>
+      <div id="dropzone" class="dropzone" tabindex="0" role="button" aria-label="上传数据文件">
+        <input id="fileInput" type="file" accept=".csv,.tsv,.txt,.xlsx,.xls,.xlsm,.json" hidden>
+        <div class="drop-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 16V4m0 0L7 9m5-5 5 5"/><path d="M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/>
+          </svg>
+        </div>
+        <p class="drop-title">拖拽文件到此处，或 <span class="link">点击选择文件</span></p>
+        <p class="drop-sub">文件仅在本次分析中使用，不会公开展示</p>
+      </div>
+      <div class="row-between">
+        <button id="demoBtn" class="btn btn-ghost" type="button">使用示例数据体验</button>
+        <span id="uploadStatus" class="status-text" role="status"></span>
+      </div>
+    </section>
+
+    <!-- 2. 预览与清洗 -->
+    <section class="card hidden" id="cardDataset">
+      <div class="card-head">
+        <h2><span class="step">2</span>预览与清洗</h2>
+        <div class="file-chip">
+          <strong id="dsName">dataset.csv</strong>
+          <span id="dsMeta"></span>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <table id="previewTable">
+          <thead></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <p class="hint" id="previewHint">仅展示前 10 行</p>
+
+      <div class="divider"></div>
+      <div class="grid-3">
+        <label class="field">
+          <span>缺失值处理</span>
+          <select id="fillStrategy">
+            <option value="auto">自动（数值→均值，类别→众数）</option>
+            <option value="mean">均值填充</option>
+            <option value="mode">众数填充</option>
+            <option value="drop">删除含缺失的行</option>
+          </select>
+        </label>
+        <label class="field">
+          <span>异常值检测</span>
+          <select id="outlierMethod">
+            <option value="iqr">IQR（四分位距）</option>
+            <option value="zscore">Z-Score（标准差）</option>
+          </select>
+        </label>
+        <label class="field field-check">
+          <span>重复行</span>
+          <label class="check"><input id="removeDup" type="checkbox" checked> 删除重复行</label>
+        </label>
+      </div>
+
+      <div class="actions">
+        <button id="cleanBtn" class="btn btn-secondary" type="button">执行清洗</button>
+        <span id="cleanStatus" class="status-text" role="status"></span>
+      </div>
+      <div id="cleanReport" class="report-box hidden"></div>
+    </section>
+
+    <!-- 3. 分析需求 -->
+    <section class="card hidden" id="cardQuery">
+      <div class="card-head">
+        <h2><span class="step">3</span>描述分析需求</h2>
+        <p class="hint">说清口径、维度和想要的图表，分析会更准确</p>
+      </div>
+      <textarea id="queryInput" rows="4" placeholder="例如：按月汇总 PV / UV / 试用 / 购买 / 退款，生成核心转化漏斗图，并给出 3 条业务建议。"></textarea>
+      <div class="chips" id="queryChips">
+        <button type="button" data-q="按月汇总核心指标，生成趋势折线图并解读趋势变化。">月度趋势</button>
+        <button type="button" data-q="统计各渠道的流量贡献占比，生成柱状图并给出结论。">渠道对比</button>
+        <button type="button" data-q="生成核心转化漏斗：UV → 试用 → 加购 → 购买 → 退款，并计算各环节转化率。">转化漏斗</button>
+        <button type="button" data-q="先做数据概览：行列数、缺失值、数值字段分布，再给出数据质量结论。">数据概览</button>
+      </div>
+      <div class="actions">
+        <button id="analyzeBtn" class="btn btn-primary" type="button">开始分析</button>
+        <span id="analyzeStatus" class="status-text" role="status"></span>
+      </div>
+    </section>
+
+    <!-- 进度 -->
+    <section class="card hidden" id="cardProgress">
+      <div class="progress-head">
+        <span id="stageText">准备中…</span>
+        <span id="progressPct">0%</span>
+      </div>
+      <div class="progress"><div id="progressBar"></div></div>
+      <p class="hint">分析通常需要 1–3 分钟，请保持页面打开</p>
+    </section>
+
+    <!-- 结果 -->
+    <section class="card hidden" id="cardResult">
+      <div class="card-head">
+        <h2>分析结果</h2>
+        <span class="badge badge-ok" id="resultBadge">已完成</span>
+      </div>
+
+      <div class="callout">
+        <div class="callout-label">核心结论</div>
+        <p id="shortSummary"></p>
+      </div>
+
+      <div class="tabs" role="tablist">
+        <button type="button" class="tab active" data-tab="charts" role="tab">图表</button>
+        <button type="button" class="tab" data-tab="report" role="tab">详细报告</button>
+        <button type="button" class="tab" data-tab="cleaning" role="tab">清洗记录</button>
+      </div>
+
+      <div class="tab-panel" id="tabCharts">
+        <div id="chartList" class="chart-grid"></div>
+        <div id="analysisSummary" class="summary-text"></div>
+      </div>
+      <div class="tab-panel hidden" id="tabReport">
+        <article class="report-body" id="reportBody"></article>
+      </div>
+      <div class="tab-panel hidden" id="tabCleaning">
+        <article class="report-body" id="cleaningBody"></article>
+      </div>
+
+      <div class="divider"></div>
+      <h3 class="section-title">导出报告</h3>
+      <div class="downloads" id="downloads"></div>
+
+      <div class="divider"></div>
+      <h3 class="section-title">邮件推送</h3>
+      <div class="email-grid">
+        <label class="field"><span>发件邮箱</span><input id="emailSender" type="email" placeholder="you@qq.com" autocomplete="off"></label>
+        <label class="field"><span>邮箱授权码</span><input id="emailAuth" type="password" placeholder="SMTP 授权码（不会保存）" autocomplete="off"></label>
+        <label class="field"><span>收件邮箱</span><input id="emailReceiver" type="email" placeholder="receiver@example.com" autocomplete="off"></label>
+      </div>
+      <div class="actions">
+        <button id="emailBtn" class="btn btn-secondary" type="button">发送报告邮件</button>
+        <span id="emailStatus" class="status-text" role="status"></span>
+      </div>
+      <p class="hint">授权码仅在本次请求中转发给邮件服务器，服务端不做持久化存储。</p>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <span>AI 数据分析助手 · FastAPI + DeepSeek</span>
+    <a href="/api/docs" target="_blank" rel="noopener">API 文档</a>
+  </footer>
+
+  <div id="toast" class="toast" role="alert"></div>
+  <script src="/assets/app.js" defer></script>
+</body>
+</html>

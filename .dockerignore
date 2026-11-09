@@ -1,0 +1,14 @@
+.git
+.gitignore
+.github
+.venv
+venv
+__pycache__
+*.pyc
+data
+artifacts
+tests
+*.md
+效果图.docx
+paper_preview.txt
+.env

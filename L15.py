@@ -1,17 +1,14 @@
 import json
-from langchain_openai import ChatOpenAI
-# 从langchain_experimental.agents中导入用于构建Pandas Agent的类
-from langchain_experimental.agents import create_pandas_dataframe_agent
+import os
+import re
+import platform
+
 # 导入pandas模块，将其命名为pd
 import pandas as pd
 # 导入绘图模块 matplotlib，设置非交互式后端
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-
-# 用来绘图的函数
-import matplotlib.pyplot as plt
-import platform
 
 def setup_plot():
     """全局绘图配置（字体、画布、样式）"""
@@ -46,16 +43,21 @@ def setup_plot():
 
 
 def ensure_dir(path):
-    import os
     """确保保存目录存在"""
     # 提取出文件所在的文件夹路径
     dir_name = os.path.dirname(path)
     # 如果文件夹不存在，就自动创建
     if dir_name and not os.path.exists(dir_name):
-        os.makedirs(dir_name)
+        os.makedirs(dir_name, exist_ok=True)
 
 
-def draw_chart(data):
+def _safe_stem(name, fallback="chart"):
+    """把标题转成安全的文件名（防路径穿越 / 非法字符）"""
+    stem = re.sub(r'[\\/:*?"<>|\r\n\t]', "_", str(name or "")).strip(" ._")
+    return stem[:60] or fallback
+
+
+def draw_chart(data, output_dir="artifacts"):
     """ 根据AI给出的数据绘制图表
     data：{
         chart_type: "bar" | "line" | "scatter"
@@ -65,6 +67,8 @@ def draw_chart(data):
         "xlabel": "X轴名",
         "ylabel": "Y轴名"
     }
+    output_dir: 图片保存目录（每个任务独立目录，避免并发写冲突）
+    返回图片路径，无需绘图时返回空字符串。
     """
     # 如果不包含 chart_type 证明无须画图
     if not data.get('chart_type'):
@@ -72,7 +76,7 @@ def draw_chart(data):
     # 绘图全局设置：中文字体、画布大小、网格线等；
     setup_plot()
     # 根据标题生成图像保存路径，例如 artifacts/销售趋势.png
-    save_path = f"artifacts/{data.get('title', 'default_chart')}.png"
+    save_path = os.path.join(output_dir, _safe_stem(data.get("title")) + ".png")
     # 检查文件目录是否存在
     ensure_dir(save_path)
 
@@ -189,13 +193,22 @@ PROMPT_TEMPLATE = '''
 - 所有列名必须存在于 df（若使用映射，请先在说明中给出映射关系）
 - 仅返回一个 JSON；不要附加解释性文字'''
 
-def data_analyze_agent(csv_path, user_query, api_key=""):
-    model = ChatOpenAI(
+def _build_llm(api_key="", **kwargs):
+    """按需构建 DeepSeek 模型客户端（延迟导入，未配置依赖时也能启动 Web 服务）"""
+    from langchain_openai import ChatOpenAI
+    return ChatOpenAI(
         api_key=api_key,
         model="deepseek-chat",
         base_url="https://api.deepseek.com",
-        model_kwargs={'response_format': {'type': 'json_object'}}
+        **kwargs,
     )
+
+
+def data_analyze_agent(csv_path, user_query, api_key="", output_dir="artifacts"):
+    # 延迟导入：避免服务启动时加载 langchain
+    from langchain_experimental.agents import create_pandas_dataframe_agent
+
+    model = _build_llm(api_key, model_kwargs={'response_format': {'type': 'json_object'}})
     df = pd.read_csv(csv_path)
     agent = create_pandas_dataframe_agent(
         llm=model,
@@ -205,7 +218,7 @@ def data_analyze_agent(csv_path, user_query, api_key=""):
     )
     raw = agent.invoke({"input": PROMPT_TEMPLATE + user_query})
     answer = json.loads(raw.get('output', {}))
-    chart_paths = draw_chart(answer.get('data', {}))
+    chart_paths = draw_chart(answer.get('data', {}), output_dir=output_dir)
     answer['chart_paths'] = chart_paths
     return answer
 
@@ -316,14 +329,8 @@ REPORT_PROMPT = """
 
 
 def generate_report(analysis_log, api_key=""):
-    import os
     from langchain_core.prompts import ChatPromptTemplate
-    llm = ChatOpenAI(
-        api_key=api_key,
-        model="deepseek-chat",
-        base_url="https://api.deepseek.com",
-        model_kwargs={'response_format': {'type': 'json_object'}},
-    )
+    llm = _build_llm(api_key, model_kwargs={'response_format': {'type': 'json_object'}})
     report_prompt = ChatPromptTemplate.from_messages([
         ("system", REPORT_PROMPT),
         ("user", "输入的 json 列表如下：{json_list}请生成报告。")

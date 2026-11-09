@@ -5,7 +5,7 @@
 
 上传数据 → 自动清洗 → DeepSeek 智能分析 → 一键导出 **Markdown / Word / Excel / 文本摘要**。
 
-基于 **FastAPI + 原生前端** 的 Web 应用，可直接通过 GitHub 部署到任意容器平台（Render / Railway / 自有服务器 / 群晖 NAS 等）。项目已从 Streamlit 迁移，不再依赖 `streamlit run`。
+基于 **FastAPI + 原生前端** 的 Web 应用，可直接部署到任意容器平台（Render / Hugging Face Spaces / 自有服务器 / NAS 等），无需前端构建步骤。
 
 ---
 
@@ -60,7 +60,7 @@ uvicorn server.main:app --reload --port 8000
 
 ## 通过 GitHub 上线
 
-仓库地址：<https://github.com/Falcons520/py5-data-analysis-assistant>（v2.1.0，CI 与镜像构建均为绿色）
+仓库地址：<https://github.com/Falcons520/py5-data-analysis-assistant>
 
 仓库已包含部署所需文件：
 
@@ -73,7 +73,7 @@ render.yaml                Render 一键部署配置
 
 ### 方式一：Render（推荐，免费额度即可）
 
-1. 把代码推到 GitHub 仓库（如 `Falcons520/py5-data-analysis-assistant`）。
+1. Fork 或克隆本仓库到你的 GitHub 账号。
 2. 登录 [Render](https://render.com) → **New → Blueprint** → 选择该仓库，Render 会自动读取 `render.yaml`。
    也可以直接打开 <https://dashboard.render.com/blueprint/new?repo=https://github.com/Falcons520/py5-data-analysis-assistant>。
 3. 在环境变量里填写 `DEEPSEEK_API_KEY`（勾选 Secret），以及自定义的 `ACCESS_TOKEN`（访问口令，同样勾选 Secret）。
@@ -81,13 +81,13 @@ render.yaml                Render 一键部署配置
 
 > 免费实例无持久磁盘，重启后上传数据会丢失（任务结果本来也只保留 24 小时）；如需保留，升级套餐并在 `render.yaml` 中挂载磁盘到 `/app/data`。
 
-### 方式一·备选：Hugging Face Spaces（免费，无需信用卡）
+### 方式二：Hugging Face Spaces（无需信用卡）
 
-Render 创建免费实例现在也要求绑卡验证。不想绑卡时可以用 Hugging Face Spaces，同样是 Docker 容器、2 vCPU / 16 GB 免费额度。
+同样是 Docker 容器，免费额度 2 vCPU / 16 GB，不需要任何支付信息。
 
 完整步骤见 [docs/huggingface-space.md](docs/huggingface-space.md)，大致是：新建 Docker Space → `git push` 代码 → 在 Space 的 README 顶部加 `sdk: docker` / `app_port: 8000` → 在 Settings 里加 `DEEPSEEK_API_KEY` 与 `ACCESS_TOKEN` 两个 secret。
 
-### 方式二：任意支持 Docker 的平台
+### 方式三：任意支持 Docker 的平台
 
 ```bash
 docker build -t ai-data-analysis-assistant .
@@ -105,7 +105,7 @@ docker pull ghcr.io/falcons520/py5-data-analysis-assistant:latest
 docker run -d -p 8000:8000 -e DEEPSEEK_API_KEY=sk-xxxx ghcr.io/falcons520/py5-data-analysis-assistant:latest
 ```
 
-### 方式三：自有服务器 / NAS
+### 方式四：自有服务器 / NAS
 
 1. `git clone` 仓库并进入目录。
 2. `docker compose up -d --build`（或按上面的 `docker run` 手动启动）。
@@ -207,15 +207,6 @@ pytest -q
 - `DEEPSEEK_API_KEY` 只保存在服务端，前端与浏览器均不接触密钥。
 - 报告 HTML 经过服务端清洗（移除 `script` / `iframe` / 事件属性 / `javascript:` 链接），前端渲染前再用 `DOMParser` 二次清洗。
 - 邮箱授权码只在单次请求内转发给 SMTP 服务器，不写入磁盘、不写日志。
-- ⚠️ Pandas Agent 会执行模型生成的 Python 代码（`allow_dangerous_code=True`）。**不要部署成完全公开、无鉴权的服务**；生产环境建议加登录鉴权 / 内网访问 / 限流。
+- ⚠️ Pandas Agent 会执行模型生成的 Python 代码（`allow_dangerous_code=True`）。公开部署时务必设置 `ACCESS_TOKEN`，或限制在内网访问。
 - 分析任务运行在进程内线程中，服务重启会中断进行中的任务；多副本部署时请把任务队列替换为 Celery / RQ 等外部队列。
 
-## 从 Streamlit 迁移的变更
-
-| 旧 | 新 |
-| --- | --- |
-| `streamlit run app.py` | `uvicorn server.main:app` |
-| `.streamlit/secrets.toml` | 环境变量 `DEEPSEEK_API_KEY` |
-| `st.session_state` | 数据集 / 任务落盘存储（`data/`） |
-| `st.download_button` | `/api/jobs/{id}/download/{kind}` 直链下载 |
-| `st.spinner` | 任务进度轮询 + 进度条 |

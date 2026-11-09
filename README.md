@@ -37,33 +37,6 @@ uvicorn server.main:app --reload --port 8000
 
 打开 <http://127.0.0.1:8000>，接口文档在 <http://127.0.0.1:8000/api/docs>。
 
-## 部署
-
-### Docker
-
-```bash
-docker build -t ai-data-analysis-assistant .
-docker run -d -p 8000:8000 \
-  -e DEEPSEEK_API_KEY=sk-xxxx \
-  -e ACCESS_TOKEN=your-token \
-  -v $(pwd)/data:/app/data \
-  ai-data-analysis-assistant
-```
-
-或直接 `docker compose up -d --build`（从 `.env` 读取配置）。
-
-### Render
-
-1. **New → Blueprint**，选择本仓库，自动读取 `render.yaml`
-2. 填写环境变量 `DEEPSEEK_API_KEY` 与 `ACCESS_TOKEN`
-3. **Apply**，构建完成后获得 `https://<service>.onrender.com`
-
-免费实例无持久磁盘，重启后 `data/` 会清空；需要保留请升级套餐并挂载磁盘。
-
-### Hugging Face Spaces
-
-见 [docs/huggingface-space.md](docs/huggingface-space.md)。
-
 ## 环境变量
 
 | 变量 | 默认值 | 说明 |

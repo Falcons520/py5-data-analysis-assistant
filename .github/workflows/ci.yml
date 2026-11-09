@@ -1,0 +1,33 @@
+name: CI
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: requirements*.txt
+
+      - name: 安装依赖
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-dev.txt
+
+      - name: 语法检查
+        run: python -m compileall -q server L15.py report_generator.py data_cleaning.py
+
+      - name: 运行测试
+        env:
+          DATA_DIR: ${{ runner.temp }}/data
+          DEEPSEEK_API_KEY: test-key
+        run: pytest -q

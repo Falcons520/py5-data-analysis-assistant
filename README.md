@@ -81,6 +81,12 @@ render.yaml                Render 一键部署配置
 
 > 免费实例无持久磁盘，重启后上传数据会丢失（任务结果本来也只保留 24 小时）；如需保留，升级套餐并在 `render.yaml` 中挂载磁盘到 `/app/data`。
 
+### 方式一·备选：Hugging Face Spaces（免费，无需信用卡）
+
+Render 创建免费实例现在也要求绑卡验证。不想绑卡时可以用 Hugging Face Spaces，同样是 Docker 容器、2 vCPU / 16 GB 免费额度。
+
+完整步骤见 [docs/huggingface-space.md](docs/huggingface-space.md)，大致是：新建 Docker Space → `git push` 代码 → 在 Space 的 README 顶部加 `sdk: docker` / `app_port: 8000` → 在 Settings 里加 `DEEPSEEK_API_KEY` 与 `ACCESS_TOKEN` 两个 secret。
+
 ### 方式二：任意支持 Docker 的平台
 
 ```bash

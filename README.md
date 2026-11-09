@@ -1,5 +1,8 @@
 # AI 数据分析助手
 
+[![CI](https://github.com/Falcons520/py5-data-analysis-assistant/actions/workflows/ci.yml/badge.svg)](https://github.com/Falcons520/py5-data-analysis-assistant/actions/workflows/ci.yml)
+[![Docker](https://github.com/Falcons520/py5-data-analysis-assistant/actions/workflows/docker.yml/badge.svg)](https://github.com/Falcons520/py5-data-analysis-assistant/actions/workflows/docker.yml)
+
 上传数据 → 自动清洗 → DeepSeek 智能分析 → 一键导出 **Markdown / Word / Excel / 文本摘要**。
 
 基于 **FastAPI + 原生前端** 的 Web 应用，可直接通过 GitHub 部署到任意容器平台（Render / Railway / 自有服务器 / 群晖 NAS 等）。项目已从 Streamlit 迁移，不再依赖 `streamlit run`。
@@ -57,6 +60,8 @@ uvicorn server.main:app --reload --port 8000
 
 ## 通过 GitHub 上线
 
+仓库地址：<https://github.com/Falcons520/py5-data-analysis-assistant>（已推送 v2.0.0，CI 与镜像构建均为绿色）
+
 仓库已包含部署所需文件：
 
 ```
@@ -89,8 +94,8 @@ docker run -d -p 8000:8000 \
 也可以用 GitHub Actions 构建的镜像：
 
 ```bash
-docker pull ghcr.io/<你的用户名>/<仓库名>:latest
-docker run -d -p 8000:8000 -e DEEPSEEK_API_KEY=sk-xxxx ghcr.io/<你的用户名>/<仓库名>:latest
+docker pull ghcr.io/falcons520/py5-data-analysis-assistant:latest
+docker run -d -p 8000:8000 -e DEEPSEEK_API_KEY=sk-xxxx ghcr.io/falcons520/py5-data-analysis-assistant:latest
 ```
 
 ### 方式三：自有服务器 / NAS
